@@ -123,3 +123,75 @@ class MyApplication: Application() {
 # V.3.0
 
 - Delete all Components
+- Implement InstallIn
+
+```kotlin
+@Module
+@InstallIn(ActivityComponent::class)
+abstract class ActivityModule {
+
+    @ActivityScope
+    @Binds
+    abstract fun screensNavigator(screensNavigatorImpl: ScreensNavigatorImpl): ScreensNavigator
+
+    companion object {
+        @Provides
+        fun layoutInflater(activity: AppCompatActivity) = LayoutInflater.from(activity)
+
+        @Provides
+        fun fragmentManager(activity: AppCompatActivity) = activity.supportFragmentManager
+    }
+
+}
+```
+
+⇒ ActivityComponent will expose its modules to `Application`, `Activity`
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+class AppModule { //AppModule should have no argument
+
+    @Provides
+    @AppScope
+    @Retrofit1
+    fun retrofit1(urlProvider: UrlProvider): Retrofit {
+        return Retrofit.Builder()
+                .baseUrl(urlProvider.getBaseUrl1())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+    }
+
+    @Provides
+    @AppScope
+    @Retrofit2
+    fun retrofit2(urlProvider: UrlProvider): Retrofit {
+        return Retrofit.Builder()
+                .baseUrl(urlProvider.getBaseUrl2())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+    }
+
+    @AppScope
+    @Provides
+    fun urlProvider() = UrlProvider()
+
+    @Provides
+    @AppScope
+    fun stackoverflowApi(@Retrofit1 retrofit: Retrofit) = retrofit.create(StackoverflowApi::class.java)
+
+}
+```
+
+⇒ SingletonComponent will expose its modules to `Application`
+
+### Component Default Bindings
+
+- SingletonComponent - Application
+- ActivityRetainedComponent - Application
+- ViewModelComponent - SavedStateHandle
+- ActivityComponent - Application, Activity
+- FragmentComponent - Application, Activity, Fragment
+- ViewComponent - Application, Activity, View
+- ViewWithFragmentComponent - Application, Activity, Fragment, View
+- ServiceComponent - Application, Service
