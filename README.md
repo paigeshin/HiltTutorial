@@ -104,3 +104,22 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 ```
+
+# V.2.0
+
+### Annotate App as `HiltAndroidApp`
+
+```kotlin
+@HiltAndroidApp
+class MyApplication: Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+    }
+
+}
+```
+
+# V.3.0
+
+- Delete all Components
