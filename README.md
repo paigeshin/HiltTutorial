@@ -1,10 +1,10 @@
 # Dagger & Hilt
 
-!(img)[./img1.png]
+![img](./img1.png)
 
-!(img)[./img2.png]
+![img](./img2.png)
 
-!(img)[./img3.png]
+![img](./img3.png)
 
 # v.1.0 - Hilt Installation
 
