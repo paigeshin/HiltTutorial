@@ -269,3 +269,181 @@ class AppModule { //AppModule should have no argument
 
 }
 ```
+
+# v.5.0 - ViewModel with hilt
+
+- No need for ViewModelFactory
+- @HiltViewModel takes care of extra argument such as `savedStateHandle`
+
+```kotlin
+@HiltViewModel
+class MyViewModel @Inject constructor(
+        private val fetchQuestionsUseCase: FetchQuestionsUseCase,
+        private val fetchQuestionDetailsUseCase: FetchQuestionDetailsUseCase,
+        private val savedStateHandle: SavedStateHandle
+): ViewModel() {
+
+    private var _questions: MutableLiveData<List<Question>> = savedStateHandle.getLiveData("questions")
+    val questions: LiveData<List<Question>> get() = _questions
+
+    init {
+        viewModelScope.launch {
+            delay(5000)
+            val result = fetchQuestionsUseCase.fetchLatestQuestions()
+            if (result is FetchQuestionsUseCase.Result.Success) {
+                _questions.value = result.questions
+            } else {
+                throw RuntimeException("fetch failed")
+            }
+        }
+    }
+}
+```
+
+```kotlin
+@AndroidEntryPoint
+class ViewModelActivity : BaseActivity() {
+
+    @Inject lateinit var screensNavigator: ScreensNavigator
+
+    private lateinit var myViewModel: MyViewModel
+    private lateinit var myViewModel2: MyViewModel2
+
+    private lateinit var toolbar: MyToolbar
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContentView(R.layout.layout_view_model)
+
+        toolbar = findViewById(R.id.toolbar)
+        toolbar.setNavigateUpListener {
+            screensNavigator.navigateBack()
+        }
+
+        myViewModel = ViewModelProvider(this).get(MyViewModel::class.java)
+        myViewModel2 = ViewModelProvider(this).get(MyViewModel2::class.java)
+
+        myViewModel.questions.observe(this, Observer {
+            questions -> Toast.makeText(this, "fetched ${questions.size} questions", Toast.LENGTH_SHORT).show()
+        })
+    }
+
+    companion object {
+        fun start(context: Context) {
+            val intent = Intent(context, ViewModelActivity::class.java)
+            context.startActivity(intent)
+        }
+    }
+}
+```
+
+# v.6.0 - simplify viewmodel initialization
+
+### App Level Gradle
+
+```kotlin
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
+// Hilt Related
+apply plugin: 'dagger.hilt.android.plugin'
+
+android {
+    compileSdkVersion 29
+    defaultConfig {
+        applicationId "com.techyourchance.dagger2course"
+        minSdkVersion 19
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+        vectorDrawables.useSupportLibrary = true
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    //Simplify ViewModel
+    kotlinOptions {
+        jvmTarget = 1.8
+    }
+    compileOptions {
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+}
+
+// Hilt Related
+kapt {
+    correctErrorTypes true
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+    // Image loading
+    implementation 'com.github.bumptech.glide:glide:4.11.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'androidx.recyclerview:recyclerview:1.2.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1'
+    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:2.3.1"
+
+    //Simplify ViewModel
+    implementation "androidx.activity:activity-ktx:1.2.3"
+
+    implementation 'com.squareup.retrofit2:retrofit:2.6.1'
+    implementation 'com.squareup.retrofit2:converter-gson:2.6.1'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.1'
+
+    //Hilt Related
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+    kapt "com.google.dagger:hilt-compiler:$hilt_version"
+}
+```
+
+```kotlin
+@AndroidEntryPoint
+class ViewModelActivity : BaseActivity() {
+
+    @Inject lateinit var screensNavigator: ScreensNavigator
+
+    private val myViewModel: MyViewModel by viewModels()
+    private val myViewModel2: MyViewModel2 by viewModels()
+
+    private lateinit var toolbar: MyToolbar
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setContentView(R.layout.layout_view_model)
+
+        toolbar = findViewById(R.id.toolbar)
+        toolbar.setNavigateUpListener {
+            screensNavigator.navigateBack()
+        }
+
+//        myViewModel = ViewModelProvider(this).get(MyViewModel::class.java)
+//        myViewModel2 = ViewModelProvider(this).get(MyViewModel2::class.java)
+
+        myViewModel.questions.observe(this, Observer {
+            questions -> Toast.makeText(this, "fetched ${questions.size} questions", Toast.LENGTH_SHORT).show()
+        })
+    }
+
+    companion object {
+        fun start(context: Context) {
+            val intent = Intent(context, ViewModelActivity::class.java)
+            context.startActivity(intent)
+        }
+    }
+}
+```
