@@ -195,3 +195,77 @@ class AppModule { //AppModule should have no argument
 - ViewComponent - Application, Activity, View
 - ViewWithFragmentComponent - Application, Activity, Fragment, View
 - ServiceComponent - Application, Service
+
+# V.4.0
+
+![img](./img5.png)
+⇒ You can't use custom scopes in Hilt.
+
+### Provide Default Scope
+
+```kotlin
+@Module
+@InstallIn(ActivityComponent::class)
+abstract class ActivityModule {
+
+    @ActivityScoped
+    @Binds
+    abstract fun screensNavigator(screensNavigatorImpl: ScreensNavigatorImpl): ScreensNavigator
+
+    companion object {
+        @Provides
+        fun layoutInflater(activity: AppCompatActivity) = LayoutInflater.from(activity)
+
+        @Provides
+        fun fragmentManager(activity: AppCompatActivity) = activity.supportFragmentManager
+    }
+
+}
+```
+
+⇒ We deleted custom ActivityScope and replaced it with default scope `ActivityScoped`
+
+### Make an alias scope
+
+```kotlin
+@Scope
+@AliasOf(Singleton::class)
+annotation class AppScope {
+}
+```
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+class AppModule { //AppModule should have no argument
+
+    @Provides
+    @AppScope
+    @Retrofit1
+    fun retrofit1(urlProvider: UrlProvider): Retrofit {
+        return Retrofit.Builder()
+                .baseUrl(urlProvider.getBaseUrl1())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+    }
+
+    @Provides
+    @AppScope
+    @Retrofit2
+    fun retrofit2(urlProvider: UrlProvider): Retrofit {
+        return Retrofit.Builder()
+                .baseUrl(urlProvider.getBaseUrl2())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+    }
+
+    @AppScope
+    @Provides
+    fun urlProvider() = UrlProvider()
+
+    @Provides
+    @AppScope
+    fun stackoverflowApi(@Retrofit1 retrofit: Retrofit) = retrofit.create(StackoverflowApi::class.java)
+
+}
+```
